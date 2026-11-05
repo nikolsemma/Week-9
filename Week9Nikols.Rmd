@@ -1,0 +1,27 @@
+---
+title: "Week9NikolsHW"
+author: "Nikols"
+date: "2026-10-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Week 9 Assignment:
+## Paper: McEwen, Brendan; Yeager, Justin; Veneat, Ana; Barnett, James (2025). Data from: Larger frogs are better mimics but are more risk-averse in a non-toxic poison frog [Dataset]. Dryad. https://doi.org/10.5061/dryad.905qfttxx
+
+## What, if any, is their experimental design? The researchers collected 90 frogs of the species Al. zaparo (mimic frog) and 5 Am. bilinguis (poison frog). They compared each individual Al. zaparo's coloration to that of Am. bilinguis, measured their size, and performed behavioral assays to assess the frogs' "boldness" and activity levels. 
+
+## What, if any, statistical analyses did they perform? They used linear mixed effects models. The response variables were boldness, as defined by entry into an artificial arena (binary) and latency (seconds) before entering the arena, and activity, measured in number of jumps and distance traveled. The predictor variables were the frogs' color, body size, and lighting levels. The fixed effects were chromatic contrast (ΔS), achromatic contrast (ΔL), body size (SVL in mm), time of day (morning or afternoon), and light intensity (high or low). The random effects were frog ID and experimental session. In addition to the mixed effects models, they looked at the relationship between body size and coloration using generalized additive models. 
+
+## What, if any, data validation techniques did they use? For example, if they used linear models, did they test for normality? This was not explicitly mentioned in paper, but their supplementary data included an R markdown file in which they did plot the raw data to check for normal distribution and then checked model assumptions using the function gamcheck to produce residual plots, diagnostic plots and a GCV/UBRE score. They determined p-values, significant variables, and the R squared of the models using the summary function. For the behavioral assays, they checked for colinearity and then ran an ANOVA to determine significant relationships between variables. Raw data and log transformed data for activity levels were plotted as histograms to look for normality. 
+
+## Are there any other techniques we’ve discussed that they used (e.g., imputation, MICE, etc.)? They log transformed the data and added interaction terms occassionally if there were multiple significant predictor variables in a model. 
+
+## Do you have any other questions or comments about the paper? I would like to see more frog pictures. They were very conservative with the amount of frog pictures.
+
+```{r}
+
+```
+

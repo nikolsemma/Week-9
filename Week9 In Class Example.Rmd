@@ -1,0 +1,61 @@
+---
+title: "Week9Nikols"
+author: "Nikols"
+date: "2026-10-27"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Week 9
+##In-Class Example:
+
+```{r}
+library(lme4)
+library(AICcmodavg)
+```
+```{r}
+sleepstudy
+```
+```{r}
+plot(sleepstudy$Days, sleepstudy$Reaction) #yuck!
+```
+```{r}
+mod1 <- lm(sleepstudy$Reaction~sleepstudy$Days)
+summary(mod1)
+```
+```{r}
+mod2intrx <- lm(sleepstudy$Reaction~sleepstudy$Days*sleepstudy$Subject)
+summary(mod2intrx)
+```
+```{r}
+AICc(mod1)
+AICc(mod2intrx) #better model, but a mixed effect model will be better because we don't actually care about the individual subjects
+```
+```{r}
+mod_random <- lmer(Reaction~Days+(Days|Subject), data=sleepstudy) #random effect model. lmer does NOT let you use df$var. You COULD combine both interactions and mixed effects in one model if you had enough predictor variables, which we do not here, but if there was something like age that you DO care about as a variable and subjects which you do NOT, age would be an interacting term and subject would still be written as it is here in the (Days|Subject) term
+mod_random2 <- lmer(Reaction~(Days|Subject), data=sleepstudy) #just for comparison but model does not test hypothesis
+summary(mod_random) #should have same coefficients as linear model (model 1)
+```
+
+```{r}
+mod_random3 <- lmer(Reaction~(1|Subject), data=sleepstudy) #if we do not care about the slopes of each individual/subject you would use this; not true for this model, individuals should and do all have different slopes of their reaction times with respect to days of sleep deprivation
+summary(mod_random3)
+```
+```{r}
+AICc(mod1)
+AICc(mod2intrx) #even though this model's AICc is technically better fit it is NOT the appropriate model
+AICc(mod_random)
+AICc(mod_random2)
+AICc(mod_random3) 
+```
+```{r}
+mod_random4 <- lmer(Reaction~(0+Days|Subject), data=sleepstudy) #used if somehow each value always will start at 0 no matter what/all the same intercept
+AICc(mod_random4)
+```
+
+
