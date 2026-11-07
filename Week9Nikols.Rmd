@@ -2,26 +2,137 @@
 title: "Week9NikolsHW"
 author: "Nikols"
 date: "2026-10-27"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 ## Week 9 Assignment:
+## Worked with Alyssa, Caeden, Danielle, Megan, and Laura.
 ## Paper: McEwen, Brendan; Yeager, Justin; Veneat, Ana; Barnett, James (2025). Data from: Larger frogs are better mimics but are more risk-averse in a non-toxic poison frog [Dataset]. Dryad. https://doi.org/10.5061/dryad.905qfttxx
 
 ## What, if any, is their experimental design? The researchers collected 90 frogs of the species Al. zaparo (mimic frog) and 5 Am. bilinguis (poison frog). They compared each individual Al. zaparo's coloration to that of Am. bilinguis, measured their size, and performed behavioral assays to assess the frogs' "boldness" and activity levels. 
 
-## What, if any, statistical analyses did they perform? They used linear mixed effects models. The response variables were boldness, as defined by entry into an artificial arena (binary) and latency (seconds) before entering the arena, and activity, measured in number of jumps and distance traveled. The predictor variables were the frogs' color, body size, and lighting levels. The fixed effects were chromatic contrast (ΔS), achromatic contrast (ΔL), body size (SVL in mm), time of day (morning or afternoon), and light intensity (high or low). The random effects were frog ID and experimental session. In addition to the mixed effects models, they looked at the relationship between body size and coloration using generalized additive models. 
+## What, if any, statistical analyses did they perform? They used linear mixed effects models. The response variables were boldness, as defined by entry into an artificial arena (binary) and latency (seconds) before entering the arena, and activity, measured in number of jumps and distance traveled. The predictor variables were the frogs' color, body size, and lighting levels. The fixed effects were chromatic contrast (ΔS)/difference between hue in the mimic frogs and poison frogs, achromatic contrast (ΔL)/difference between brightness of coloration between mimic frogs and poison frogs, body size (SVL in mm), time of day (morning or afternoon), and light intensity (high or low). The random effects were frog ID and experimental session. In addition to the mixed effects models, they looked at the relationship between body size and coloration using generalized additive models. 
 
-## What, if any, data validation techniques did they use? For example, if they used linear models, did they test for normality? This was not explicitly mentioned in paper, but their supplementary data included an R markdown file in which they did plot the raw data to check for normal distribution and then checked model assumptions using the function gamcheck to produce residual plots, diagnostic plots and a GCV/UBRE score. They determined p-values, significant variables, and the R squared of the models using the summary function. For the behavioral assays, they checked for colinearity and then ran an ANOVA to determine significant relationships between variables. Raw data and log transformed data for activity levels were plotted as histograms to look for normality. 
+## What, if any, data validation techniques did they use? For example, if they used linear models, did they test for normality? Their supplementary data included an R markdown file in which they plotted the raw data to check for normal distribution and then checked model assumptions using the function gamcheck to produce residual plots, diagnostic plots and a GCV/UBRE score. They determined p-values, significant variables, and the R squared of the models using the summary function. For the behavioral assays, they checked for colinearity and then ran an ANOVA to determine significant relationships between variables. Raw data and log transformed data for activity levels were plotted as histograms to look for normality. 
 
 ## Are there any other techniques we’ve discussed that they used (e.g., imputation, MICE, etc.)? They log transformed the data and added interaction terms occassionally if there were multiple significant predictor variables in a model. 
 
 ## Do you have any other questions or comments about the paper? I would like to see more frog pictures. They were very conservative with the amount of frog pictures.
 
 ```{r}
-
+library(tidyverse) 	#Used by the authors for data organization
+library(mgcv) #Package for GAMs
+library(tidygam) #Plotting a GAM
+library(ggplot2) 
+library(patchwork) 	#Package used to combine plots into one figure for publication
+library(readr)
+library(dplyr)
 ```
+```{r}
+data <- read_csv("~/Desktop/Stats/Week 9/McEwen-etal-2025_BehaviourData.csv")%>%
+  mutate(across(where(is.character), as.factor)) #R wouldn't let me use the original code they supplied for setting factors but this seemed to work
+```
+```{r}
+data <- data %>% dplyr::select(FocalFrog, vids, SVL, DorsalColJND, DorsalLumJND) #This line is used to select the relevant subset of the dataset. Variables being used: FocalFrog = unique alphanumeric code assigned to each individual Al. zaparo; vids = unique alphanumeric code assigned to each individual video file; SVL = the length of the frog in mm; DorsalColJND = chromatic contrast(deltaS); DorsalLumJND = achromatic contrast (deltaL).
+single.SVL.contrastvals <- data %>% group_by(FocalFrog) %>% slice_min(order_by = vids) #removing duplicates
+single.SVL.contrastvals <- as.data.frame(single.SVL.contrastvals)
+```
+
+```{r}
+nrow(single.SVL.contrastvals)
+nlevels(single.SVL.contrastvals$FocalFrog) #checking for the right amount of data and levels, should be 90 based on the amount of frogs. 
+```
+
+```{r}
+ggplot(data = single.SVL.contrastvals) + 
+  geom_point(aes(x = SVL, y = DorsalColJND)) + 
+  theme_bw() + 
+  theme(panel.grid.major = element_blank()) + #gets rid of ggplot's gray and white grid background
+  theme(panel.grid.minor = element_blank()) + 
+  ylab("Chromatic contrast (Delta_S)") + 
+  xlab("Frog size (SVL mm)") + 
+  theme(legend.title = element_blank()) + 
+  theme(legend.background = element_rect(linetype = "solid", color = "black")) 
+```
+```{r}
+ggplot(data = single.SVL.contrastvals) + 
+  geom_point(aes(x = SVL,y = DorsalLumJND)) + 
+  theme_bw() + 
+  theme(panel.grid.major = element_blank()) + 
+  theme(panel.grid.minor = element_blank()) + 
+  ylab("Achromatic contrast (Delta_L)") + 
+  xlab("Frog size (SVL mm)") + 
+  theme(legend.title = element_blank()) + 
+  theme(legend.background = element_rect(linetype = "solid", color = "black"))
+```
+```{r}
+dorsalcolgam <- gam(DorsalColJND ~ s(SVL), data = single.SVL.contrastvals, family = gaussian, method = "REML") #Model: hue contrast (difference between mimic and poision frog) as a function of frog size. REML: restricted maximum likelihood, used to estimate variance in mixed effects models.
+gam.check(dorsalcolgam) #method used in the paper to check residuels; appears normally distributed and model was determined to be a good fit for the data based on p value > 0.05 and k-index >1.
+summary(dorsalcolgam)
+```
+```{r}
+dorsallumgam <- gam(DorsalLumJND ~ s(SVL), data = single.SVL.contrastvals, family = gaussian, method = "REML") #repeating process above for achromatic contrast model (difference in brightness of coloration)
+gam.check(dorsallumgam) #same as above - appears normally distributed and model was determined to be a good fit for the data but this particular relationship is not significant, which matches the findings reported in the paper.
+summary(dorsallumgam) 
+```
+```{r}
+#they refer to this as "extracting the GAM prediction for plotting" and I added in the confidence intervals as columns so that I could use it in the plot to get around the outdated package issues we are having.
+GAM_dS <- as.data.frame(predict_gam(dorsalcolgam))
+GAM_dL <- as.data.frame(predict_gam(dorsallumgam))
+GAM_dS$lower_ci <- as.numeric(GAM_dS$lower_ci)
+GAM_dS$upper_ci <- as.numeric(GAM_dS$upper_ci)
+GAM_dL$lower_ci <- as.numeric(GAM_dL$lower_ci)
+GAM_dL$upper_ci <- as.numeric(GAM_dL$upper_ci)
+```
+
+```{r}
+chromaticplot <- ggplot(data = GAM_dS, aes(x = SVL, y = DorsalColJND)) + 
+  geom_point(data = single.SVL.contrastvals, aes(x = SVL, y = DorsalColJND), color = "black", alpha = 0.5, shape = 3, size = 1) + 
+   geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci), fill = "grey80", alpha = 0.5) #replacement for geom_smooth_ci 
++ 
+  geom_line(color = "black", linewidth=1) +
+  labs(x = "SVL (mm)", y = "Chromatic contrast (dS)")+ 
+  scale_x_continuous(limits = c(0, 30), breaks = seq(0, 30, 5)) + 
+  scale_y_continuous(limits = c(0, 15), breaks = seq(0, 15, 5)) + 
+  theme_bw() + #sets ggplot to a plain white background with black text
+theme(axis.line = element_line(colour = "black"), 
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(), 
+      panel.background = element_blank(), 
+    #these 3 settings are set to element_blank() to remove default gray background and white grid that ggplot produces 
+ axis.title.y = element_text(size = 9, face = "bold"), 
+ axis.title.x = element_blank(), #set so that the x label only shows up beneath the bottom plot later and not in between both of them
+ axis.text.x = element_text(size = 8, face = "bold"), 
+ axis.text.y = element_text(size = 8, face = "bold"),
+ axis.ticks.y = element_line(linewidth = 0.7), 
+ axis.ticks.x = element_line(linewidth = 0.7))
+```
+
+```{r}
+achromaticplot <- ggplot(data = GAM_dL, aes(x = SVL, y = DorsalLumJND)) + 
+  geom_point(data = single.SVL.contrastvals, aes(x = SVL, y = DorsalLumJND), color = "black", alpha = 0.5, shape = 4, size = 1) + 
+  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci), fill = "grey80", alpha = 0.5) +
+  geom_line(color = "black", linewidth = 1) + 
+  labs(x = "SVL (mm)", y = "Achromatic contrast (dL)")+ 
+  scale_x_continuous(limits = c(0, 30), breaks = seq(0, 30, 5)) + 
+  scale_y_continuous(limits = c(0, 15), breaks = seq(0, 15, 5)) + 
+  theme_bw() + 
+  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),  panel.grid.minor = element_blank(), panel.background = element_blank()) + 
+  theme(axis.title.y = element_text(size = 9, face = "bold")) + 
+  theme(axis.text.x = element_text(size = 8, face = "bold")) + 
+  theme(axis.text.y = element_text(size = 8, face = "bold")) + 
+  theme(axis.ticks.y = element_line(linewidth = 0.7)) + 
+  theme(axis.ticks.x = element_line(linewidth = 0.7))
+```
+```{r}
+combined_plot <- chromaticplot + achromaticplot +
+plot_layout(nrow = 2)
+print(combined_plot) #output looks like the paper! The text sizes could be a little bit better, they look inconsistent at least on my R console but I might have it zoomed in differently than it will appear in the RMD file. The original paper's code had some redundant lines of code that I removed without it changing anything. 
+```
+
 
